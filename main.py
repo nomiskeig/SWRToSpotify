@@ -7,18 +7,21 @@ from bs4 import BeautifulSoup
 import spotipy
 from spotipy.oauth2 import SpotifyPKCE
 parser = argparse.ArgumentParser(
-    prog='Program name',
-    description="haiwdrj",
+    prog='SWR to Spotify' ,
+    description="A simple program that parses the SWR playlist, searches the songs on spotify and puts them in a spotify playlist.",
     epilog="adsf"
 )
+datetimeFormat =  '%m/%d/%Y %H:%M'
+def toDateTime(string):
+    return datetime.datetime.strptime(string,datetimeFormat)
 
 today = datetime.date.today()
 lastTuesday = today + datetime.timedelta(days=-today.weekday() + 1)
-parser.add_argument("-l", action="store_true", help="Searches the songs of the last Musik Klub Deutschland from " + lastTuesday.strftime("%d, %b %Y"))
-parser.add_argument("-p", help="The name of the playlist to save the songs into", required=True)
-parser.add_argument("-c", help="Provide a custom time frame to search songs in.")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("-c", help="Provide a custom time frame to search songs in. Requires the start and end date and time." , type=toDateTime, nargs=2)
+group.add_argument("-l", action="store_true", help="Searches the songs of the last Musik Klub Deutschland from " + lastTuesday.strftime("%d, %b %Y"))
+parser.add_argument("-p", help="The name of the playlist to save the songs into. If the playlist does not exist, it is created.", required=True)
 args = parser.parse_args()
-datetoparse = today
 # set the start and end datetime to the last Musik Klub Deutschland
 if(args.l):
     print("passed l")
@@ -27,12 +30,13 @@ if(args.l):
     print("Start: " + start.strftime("%d, %b %Y %H %M"))
     print("End: " + end.strftime("%d, %b %Y %H %M"))
 
-
+if (args.c):
+    start = args.c[0]
+    end = args.c[1]
 
 # the swr page only ever displays the songs within one hour, so we need to do some magic to get all the songs within the timeframe
 
 difference = end - start
-print("Difference: " + repr(difference.seconds/60/60))
 differenceInHours = difference.seconds/60/60
 
 
@@ -40,7 +44,6 @@ songs =  []
 artists = []
 offset = 0
 while differenceInHours > 0:
-
     url = "https://www.swr.de/swr1/bw/playlist/index.html?swx_date={year}-{month}-{day}&swx_time={hour}%3A00".format(year= start.year, month=str(start.month).zfill(2), day=str(start.day).zfill(2), hour = start.hour + offset)
     print(url)
     html_text = requests.get(url).text
@@ -57,8 +60,6 @@ while differenceInHours > 0:
 
 songs_and_artists = set(zip(songs, artists))
 print(songs_and_artists)
-
-
 # put the songs into a spotify playlist
 scope="playlist-modify-public,playlist-modify-private"
 spotify = spotipy.Spotify(auth_manager=SpotifyPKCE(open_browser=True, scope=scope))
@@ -87,3 +88,4 @@ for (song, artist) in songs_and_artists:
             song_uris.append(track["uri"])
 
 spotify.playlist_add_items(playlist_id, song_uris)
+print("Successfully added the songs to your playlist.")
