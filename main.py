@@ -16,7 +16,7 @@ def toDateTime(string):
     return datetime.datetime.strptime(string,datetimeFormat)
 
 today = datetime.date.today()
-lastTuesday = today + datetime.timedelta(days=-today.weekday() + 1)
+lastTuesday = today + datetime.timedelta(days=-((today.weekday() -1) % 7))
 group = parser.add_mutually_exclusive_group()
 group.add_argument("-c", help="Provide a custom time frame to search songs in. Requires the start and end date and time." , type=toDateTime, nargs=2)
 group.add_argument("-l", action="store_true", help="Searches the songs of the last Musik Klub Deutschland from " + lastTuesday.strftime("%d, %b %Y"))
